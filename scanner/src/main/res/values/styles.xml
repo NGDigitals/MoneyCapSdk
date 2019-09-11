@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.MaterialButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:textColor">@color/colorWhite</item>
+        <item name="backgroundTint">@color/colorPrimaryDark</item>
+    </style>
+
+    <style name="CustomDialogTheme" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+        <item name="colorAccent">@android:color/holo_blue_dark</item>
+        <item name="android:textColorPrimary">@color/colorGreyDark</item>
+        <item name="android:windowBackground">@drawable/dialog_bg</item>
+    </style>
+
+</resources>
