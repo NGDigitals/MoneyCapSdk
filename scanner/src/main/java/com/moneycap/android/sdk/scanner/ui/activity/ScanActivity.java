@@ -1,15 +1,19 @@
 package com.moneycap.android.sdk.scanner.ui.activity;
 
+import java.util.Currency;
+import java.util.Locale;
+import java.util.HashMap;
+import java.text.NumberFormat;
+
 import android.os.Build;
 import android.os.Bundle;
 import android.app.Dialog;
+import android.content.Intent;
 import android.content.Context;
 
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.view.ViewGroup;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.BaseAdapter;
 import androidx.annotation.NonNull;
@@ -39,6 +43,12 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
 
     private Context mContext;
 
+    private HashMap<String, String> bookingMap;
+    private static Locale locale =
+            new Locale("en", "US");
+    private static NumberFormat currencyFormatter =
+            NumberFormat.getCurrencyInstance(locale);
+
     private ZXingScannerView mScannerView;
     private static final int REQUEST_CAMERA = 1;
 
@@ -49,13 +59,15 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
         mContext = ScanActivity.this;
         mScannerView = new ZXingScannerView(this);
         setContentView(mScannerView);
-        startScanner();
+        Intent intent = getIntent();
+        bookingMap = (HashMap<String, String>)intent.getSerializableExtra("BOOKING_MAP");
+        if(bookingMap.size() != 0) {
+            startScanner();
+        }
     }
 
     private void startScanner(){
-        Log.e("ZENO", "Starting...1");
         if(checkPermission()){
-            Log.e("ZENO", "Starting...2");
             if(mScannerView == null){
                 mScannerView = new ZXingScannerView(this);
                 setContentView(mScannerView);
@@ -63,35 +75,26 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
             mScannerView.setResultHandler(this);
             mScannerView.startCamera();
         }else{
-            Log.e("ZENO", "Starting...3");
             requestPermission();
         }
     }
 
     private boolean checkPermission(){
-        Log.e("ZENO", "Starting...4");
         return ContextCompat.checkSelfPermission(getApplicationContext(), CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestPermission(){
-        Log.e("ZENO", "Starting...5");
         ActivityCompat.requestPermissions(this, new String[]{CAMERA}, REQUEST_CAMERA);
     }
 
     public void onRequestPermissionResult(int requestCode, String permissions[], int[] grantResults){
-        Log.e("ZENO", "Retuening...1");
         switch(requestCode){
             case REQUEST_CAMERA:
-                Log.e("ZENO", "Retuening...2");
                 if(grantResults.length > 0){
-                    Log.e("ZENO", "Retuening...3");
                     boolean cameraAccepted = grantResults[0] == PackageManager.PERMISSION_GRANTED;
                     if(cameraAccepted){
-                        Log.e("ZENO", "Retuening...4");
                     }else{
-                        Log.e("ZENO", "Retuening...5");
                         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-                            Log.e("ZENO", "Retuening...6");
                             if(shouldShowRequestPermissionRationale(CAMERA)){
                                 showMessageOKCancel(
                                         "You need to allow access to both the permission",
@@ -132,21 +135,22 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
     public void handleResult(Result rawResult){
         String resultText = rawResult.getText();
         String[] details = resultText.split("&");
-        if(details.length == 3) {
-            final FragmentManager fragmentManager = getSupportFragmentManager();
-            Fragment fragment = fragmentManager.findFragmentByTag(ScannerDialog.FRAG_TAG);
-            if (fragment == null) {
-                final ScannerDialog dialog = ScannerDialog.newInstance(
-                        details[0], details[1], details[2]);
-                dialog.show(fragmentManager, ScannerDialog.FRAG_TAG);
-            }
-        }else{
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            Fragment fragment = fragmentManager.findFragmentByTag(MessageDialog.FRAG_TAG);
-            if (fragment == null) {
-                MessageDialog dialog = MessageDialog.newInstance(
-                        "Not store item found for this QR Code", false);
-                dialog.show(fragmentManager, MessageDialog.FRAG_TAG);
+        if(bookingMap != null) {
+            if (bookingMap.get("qr_code_type").equals("tr_pre_check")) {
+                final FragmentManager fragmentManager = getSupportFragmentManager();
+                Fragment fragment = fragmentManager.findFragmentByTag(ScannerDialog.FRAG_TAG);
+                if (fragment == null) {
+                    final ScannerDialog dialog = ScannerDialog.newInstance(bookingMap);
+                    dialog.show(fragmentManager, ScannerDialog.FRAG_TAG);
+                }
+            } else {
+                FragmentManager fragmentManager = getSupportFragmentManager();
+                Fragment fragment = fragmentManager.findFragmentByTag(MessageDialog.FRAG_TAG);
+                if (fragment == null) {
+                    MessageDialog dialog = MessageDialog.newInstance(
+                            "No booking found ", false);
+                    dialog.show(fragmentManager, MessageDialog.FRAG_TAG);
+                }
             }
         }
     }
@@ -160,15 +164,12 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
 
         private Context context;
         private int size = 3;
-        private String name, company, price;
         public static final String FRAG_TAG = "SCANNER_FRAG";
 
-        static public ScannerDialog newInstance(String name, String company, String price) {
+        static public ScannerDialog newInstance(HashMap<String, String> map) {
             ScannerDialog dialog = new ScannerDialog();
             Bundle args = new Bundle();
-            args.putString("NAME", name);
-            args.putString("PRICE", price);
-            args.putString("COMPANY", company);
+            args.putSerializable("BOOKING_MAP", map);
             dialog.setArguments(args);
             return dialog;
         }
@@ -192,23 +193,21 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
 
             View dialogView = LayoutInflater.from(getActivity()).inflate(R.layout.dialog_scanner,
                     viewGroup, false);
-            TextView nameView = dialogView.findViewById(R.id.name_view);
-            TextView priceView = dialogView.findViewById(R.id.price_view);
-            //TextView promoView = dialogView.findViewById(R.id.promo_view);
-            TextView companyView = dialogView.findViewById(R.id.company_view);
-            ListView listView = dialogView.findViewById(R.id.detail_list_view);
-            listView.setDivider(null);
-            ListAdapter listAdapter = new ListAdapter();
-            listView.setAdapter(listAdapter);
-            if (listView.getAdapter() == null) {
-                listView.setAdapter(listAdapter);
-            }
-            listAdapter.notifyDataSetChanged();
-
-            Button closeBtn = dialogView.findViewById(R.id.close_btn);
-            closeBtn.setOnClickListener(v -> getDialog().dismiss());
-            Button addBtn = dialogView.findViewById(R.id.add_btn);
-            addBtn.setOnClickListener(v -> {
+            HashMap<String, String> map = (HashMap<String, String>)
+                    getArguments().getSerializable("BOOKING_MAP");
+            TextView pickupView = dialogView.findViewById(R.id.pickup_view);
+            TextView dropoffView = dialogView.findViewById(R.id.dropoff_view);
+            pickupView.setText(map.get("start_terminal"));
+            dropoffView.setText(map.get("stop_terminal"));
+            TextView totalView = dialogView.findViewById(R.id.total_view);
+            try {
+                double amount = Double.parseDouble(map.get("amount"));
+                totalView.setText(""+currencyFormatter.format(amount)+"");
+            }catch (NumberFormatException ex){}
+            Button cancelBtn = dialogView.findViewById(R.id.cancel_btn);
+            cancelBtn.setOnClickListener(v -> getDialog().dismiss());
+            Button checkInBtn = dialogView.findViewById(R.id.check_in_btn);
+            checkInBtn.setOnClickListener(v -> {
                 getDialog().dismiss();
                 FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
                 String fragTag = MessageDialog.FRAG_TAG;
@@ -219,16 +218,6 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
                     dialog.show(fragmentManager, fragTag);
                 }
             });
-            name = getArguments().getString("NAME");
-            company = getArguments().getString("COMPANY");
-            nameView.setText(name);
-            try {
-                price = getArguments().getString("PRICE");
-                //priceView.setText(currencyFormatter.format(price));
-                priceView.setText(price);
-            }catch (NumberFormatException e){}
-            //promoView.setText(promo);
-            companyView.setText(company);
             builder.setView(dialogView);
             builder.setCancelable(false);
             return builder.create();

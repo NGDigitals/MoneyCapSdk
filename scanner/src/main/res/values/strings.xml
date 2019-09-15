@@ -3,4 +3,8 @@
     <string name="finish">Finish</string>
     <string name="cancel">Cancel</string>
     <string name="close">Close</string>
+    <string name="check_in">Check In</string>
+    <string name="total">Total</string>
+    <string name="to">To</string>
+    <string name="trip_check_in_info">Please check in for your trip</string>
 </resources>
