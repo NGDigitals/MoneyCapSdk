@@ -1,4 +1,4 @@
-package com.moneycap.android.sdk.scanner.ui.util;
+package com.moneycap.android.sdk.scanner.ui.helper;
 
 import android.app.Activity;
 import android.graphics.Color;

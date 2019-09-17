@@ -31,14 +31,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         mContext = MainActivity.this;
         prefManager = new PrefManager(mContext);
+        Button codeBtn = findViewById(R.id.code_btn);
+        codeBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(mContext, CodeActivity.class);
+            startActivity(intent);
+        });
         Button checkInBtn = findViewById(R.id.check_in_btn);
-
         checkInBtn.setOnClickListener(v -> {
             Intent intent = new Intent(mContext, ScanActivity.class);
             HashMap<String, String> bookingMap = new HashMap<String, String>();
-            bookingMap.put("qr_code_type", "tr_pre_check");
-            bookingMap.put("qr_client_name", "Zeno");
-            bookingMap.put("id", "1");
+            bookingMap.put("merchant_id", "1");
+            bookingMap.put("merchant_type", "partner");
+            bookingMap.put("ride_id", "1");
             bookingMap.put("start_terminal", "Lekki Phase 1 Terminal");
             bookingMap.put("stop_terminal", "Ikoyi Bridge Terminal");
             bookingMap.put("amount", "1350");

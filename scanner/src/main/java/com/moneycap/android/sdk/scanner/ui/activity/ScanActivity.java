@@ -1,6 +1,5 @@
 package com.moneycap.android.sdk.scanner.ui.activity;
 
-import java.util.Currency;
 import java.util.Locale;
 import java.util.HashMap;
 import java.text.NumberFormat;
@@ -11,6 +10,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.content.Context;
 
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.view.ViewGroup;
@@ -32,7 +32,8 @@ import com.google.zxing.Result;
 
 import com.moneycap.android.sdk.scanner.R;
 import com.moneycap.android.sdk.scanner.ui.dialog.MessageDialog;
-import com.moneycap.android.sdk.scanner.ui.util.NotificationBar;
+import com.moneycap.android.sdk.scanner.ui.helper.NotificationBar;
+import com.moneycap.android.sdk.scanner.ui.helper.Util;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
 
@@ -61,7 +62,9 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
         setContentView(mScannerView);
         Intent intent = getIntent();
         bookingMap = (HashMap<String, String>)intent.getSerializableExtra("BOOKING_MAP");
-        if(bookingMap.size() != 0) {
+        if(bookingMap.size() == 0) {
+            Util.showMessageDialog(this, "Booking details not found", true);
+        }else{
             startScanner();
         }
     }
@@ -134,24 +137,27 @@ public class ScanActivity extends AppCompatActivity implements ZXingScannerView.
     @Override
     public void handleResult(Result rawResult){
         String resultText = rawResult.getText();
-        String[] details = resultText.split("&");
-        if(bookingMap != null) {
-            if (bookingMap.get("qr_code_type").equals("tr_pre_check")) {
-                final FragmentManager fragmentManager = getSupportFragmentManager();
-                Fragment fragment = fragmentManager.findFragmentByTag(ScannerDialog.FRAG_TAG);
-                if (fragment == null) {
-                    final ScannerDialog dialog = ScannerDialog.newInstance(bookingMap);
-                    dialog.show(fragmentManager, ScannerDialog.FRAG_TAG);
+        String[] details = resultText.split("\\*\\*\\*");
+        if(details == null) {
+            Util.showMessageDialog(this, "Merchant details not found", true);
+        }else{
+            try{
+                if (bookingMap.get("merchant_id").equals(details[0]) == false) {
+                    Util.showMessageDialog(this, "Invalid merchant ID", true);
+                }else if (bookingMap.get("merchant_type").equals(details[1]) == false) {
+                    Util.showMessageDialog(this, "Invalid merchant type", true);
+                }else{
+                    final FragmentManager fragmentManager = getSupportFragmentManager();
+                    Fragment fragment = fragmentManager.findFragmentByTag(ScannerDialog.FRAG_TAG);
+                    if (fragment == null) {
+                        final ScannerDialog dialog = ScannerDialog.newInstance(bookingMap);
+                        dialog.show(fragmentManager, ScannerDialog.FRAG_TAG);
+                    }
                 }
-            } else {
-                FragmentManager fragmentManager = getSupportFragmentManager();
-                Fragment fragment = fragmentManager.findFragmentByTag(MessageDialog.FRAG_TAG);
-                if (fragment == null) {
-                    MessageDialog dialog = MessageDialog.newInstance(
-                            "No booking found ", false);
-                    dialog.show(fragmentManager, MessageDialog.FRAG_TAG);
-                }
+            }catch (ArrayIndexOutOfBoundsException ex){
+                Util.showMessageDialog(this, "Whoops, looks like something went wrong.", true);
             }
+
         }
     }
 
